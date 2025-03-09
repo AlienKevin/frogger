@@ -1,0 +1,170 @@
+--------------------------------------------------------------------------------
+                A Video Game Cartridge from PARKER BROTHERS 
+        F R O G G E R (tm*)  under licence from Sega Enterprises, Inc.
+--------------------------------------------------------------------------------
+        (tm*) designates a trademark of Sega Enterprises, Inc.  
+        Rules (c) 1982 Parker Brothers, Beverly, MA 01915.  Printed in U.S.A.
+
+                FOR ATARI & SEARS VIDEO GAME SYSTEMS
+
+
+        Leapin' Frogger!  Home may look like it's only a hop, skip, and a jump
+        away, but looks can be deceiving.  First, there's a dangerous highway 
+        to hop across, full of fast-moving cars and trucks.  Then there's a
+        swirling river to leap, full of frog-eating creatures.  How's Frogger
+        going to get home safely?  By letting you hop him on his way.  Guide 
+        Frogger safely through this perilous journey, and you'll jump for joy!
+
+OBJECT
+------
+        The object of the game is to hop as many frogs to safety as you can -
+        and to score the most points along the way!
+
+PLAYING
+-------
+        This illustration shows the journey Frogger has to make - from sidewalk
+        to home bay:
+
+        [picture of game screen (mention of the other six pictures is omitted as
+        they are all virtually the same)  The picture shows the "Home Bays" to 
+        be five blue squares at the top of the screen which are extensions of 
+        the river.  The river follows filled with five rows of brown logs and 
+        blue and red circles representing turtles.  The "Riverbank" is then in 
+        the middle of the screen shown to be yellow, follow by the black road 
+        filled five rows of automobiles. The "Sidewalk" is next similar to the
+        riverbank.  The green Frogger is shown to be on the sidewalk.  The 
+        "Time Band" is represented by a black band at the bottom right of the 
+        screen, while your "Remaining Frogs" are represented by white dots on 
+        the bottom left.]
+
+        You'll start the game with 5 frogs.  The first frog is shown on the
+        sidewalk below the traffic.  The remaining frogs are shown as white 
+        squares on the lower left-hand corner of the screen.
+
+TIME BAND
+---------
+        You have only 30 seconds to move Frogger from the sidewalk and into a
+        home bay, one of the blue, open-ended squares squares at the top of the
+        screen.
+
+        Time is monitored by the time band, the black line located in the lower
+        right-hand corner of the screen When you have only 5 seconds left to get
+        Frogger into a home bay, you'll hear a warning sound and see the line 
+        turn red.
+
+        If you run out of time before you get Frogger home, you'll lose him. 
+        When this happens, you'll hear a "sploosh" sound and see a green "X" 
+        where Frogger was when his time ran out.
+
+FROM SIDEWALK TO RIVERBANK
+--------------------------
+        Frogger starts his perilous journey on the sidewalk, facing 5 lanes of
+        cars and trucks.  When the music stops, you're ready to start Frogger 
+        hopping!
+
+        Try to get Frogger through the lanes of traffic.  Traffic travels in
+        alternative directions and at different speeds, so be careful!  Frogger
+        will get "splooched" if he touches any part of a vehicle or is run over.
+
+FROM RIVERBANK TO RIVER
+-----------------------
+        Because Frogger can't swim in the river (the current is too strong),
+        hop him from one row of logs, turtles, or alligators onto the next in 
+        order to cross it.
+
+        1. Logs: Frogger can hop from side to side on a log; he can also jump
+           forward and backward onto another floating object.  But he'll land
+           in the river if he leaps to the left or right off a log.
+
+        2. Turtles: The red circles that float on the river are the turtles. 
+           Frogger is safe on their backs as well as in the water area between
+           a set of them (2 or 3 turtles in a row).  He can jump forward and 
+           backward from a turtle onto another floating object.  But he'll land
+           in the river if he jumps to the left or right off either of the end 
+           turtles.
+
+        3. Diving Turtles: These tricky turtles can float on the water and dive
+           under the water!  When they're red, it's safe for Frogger to jump on
+           their backs.  But once they turn light blue, watch out!  That means 
+           they're getting ready to dive, so hop Frogger onto another floating 
+           object fast!  If you're not quick enough, Frogger will get 
+           "splooshed."
+
+           But these turtles can't stay under water forever.  When you see a
+           set of light blue turtles suddenly appear on the screen, this means 
+           they're coming up for air.  They'll soon be changing from light blue
+           to red, so Frogger will be safe on their backs until they they dive 
+           again.
+
+        While crossing the river, here are some other things to watch for:
+
+        1. Lady Frog: Occasionally you'll see a white "lady" frog hopping
+           frantically along a log.  If you hop Frogger onto the log to rescue 
+           her and take her home, you'll score bonus points.  Just hop Frogger 
+           close enough to her so she'll jump onto his back.  You'll hear a 
+           high-pitched sound when she does.  Now, try to get Frogger - and 
+           the lady frog - home to safety.
+
+        2. Alligators: Alligators swim among the logs from time to time. 
+           You'll see them snapping their jaws open and closed, just waiting 
+           for a tender Frogger morsel to jump their way!  Frogger is safe on 
+           an alligator's tail and back.  But Frogger is a goner if he jumps 
+           into its jaws!
+
+        3. Floating Off-Screen: Frogger gets "splooched" in DIFFICULTY Position
+           A if he's carried off-screen on a log, turtle, or alligator.  This 
+           doesn't happen in DIFFICULTLY Position B.
+
+        4. Snakes: Snakes will appear on the riverbank and logs as the game
+           gets more difficult.  You can hop Frogger onto a snake's back, but 
+           he'll get "splooshed" if he hops too close to a snake's mouth.
+
+FROM RIVER TO HOME BAY
+----------------------
+        Successfully hop Frogger into a home bay, and he's safe and sound! 
+        You'll score points each time you bring Frogger home, and get bonus 
+        points each time you bring 5 froggers home!
+
+        When leaping Frogger into its home bay, here are some things to watch
+        for: 
+
+        1. Jumping Home: Hop Frogger into a home bay when he's directly in
+           front of it.  If Frogger hits any part of the green shrubbery on 
+           the sides of the home bay, he'll land in the river
+
+        2. Occupied Home Bay: Frogger can't jump into a home bay that's
+           occupied by another frog.
+
+        3. Alligator's Head: If an alligator's head is showing in a home bay,
+           it's not safe for Frogger to jump in.  However, if the head is just 
+           beginning to surface, Frogger won't be harmed.
+
+        4. Fly: If you hop Frogger into a home bay while a fly is showing,
+           Frogger gets a free meal - and you score extra points!
+
+END OF GAME
+-----------
+        The game ends when no frogs are left.
+
+        To Play Again: In a one-player game, press the red button on your
+        Joystick to play again at the same game number.  In a two-player game,
+        both players press the red buttons at the same time to play again at 
+        the same game number.  To play at another game number, use the GAME 
+        SELECT switch.
+
+SCORING
+-------
+        Your score is displayed at the top of the screen throughout the game. 
+        Points accumulate as follows:
+
+        Successfully jumping Frogger forward . . . . . . 1 point
+        Successfully jumping Frogger home . . . . . . .  5 points
+        Successfully jumping 5 frogs home . . . . . .  100 points
+        Taking a lady frog home . . . . . . . . . . . . 20 points
+        Eating a fly . . . . . . . . . . . . . . . . .  20 points
+        Extra points for time left . . . . . . . . . . . 2 points
+                                             per remaining second
+
+        Every time you score 1,000 points and have fewer than 4 frogs left,
+        you'll get another Frogger!  When this happens, you'll see another 
+        white square on the lower left-hand corner of the screen.
