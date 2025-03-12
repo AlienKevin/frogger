@@ -6,7 +6,7 @@ import time
 import pickle
 
 # Initialize the environment
-env = gym.make("ALE/Frogger-v5", render_mode="rgb_array", frameskip=4, repeat_action_probability=0, mode=0)
+env = gym.make("ALE/Pitfall-v5", render_mode="rgb_array", frameskip=4, repeat_action_probability=0, mode=0)
 
 # Initialize Pygame
 pygame.init()
