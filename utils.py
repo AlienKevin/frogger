@@ -93,9 +93,9 @@ def wrap_recording(env, video_folder, episode_trigger, name_prefix):
 
 def get_env(process=True, oc=False):
     if oc:
-        env = OCAtari("ALE/Frogger-v5", mode="vision", render_mode="rgb_array", obs_mode="ori", render_oc_overlay=True)
+        env = OCAtari("ALE/Frogger-v5", mode="vision", render_mode="rgb_array", obs_mode="ori", render_oc_overlay=True, frameskip=4, repeat_action_probability=0)
     else:
-        env = gym.make("ALE/Frogger-v5", render_mode="rgb_array")  # Create Atari env
+        env = gym.make("ALE/Frogger-v5", render_mode="rgb_array", frameskip=4, repeat_action_probability=0)  # Create Atari env
     if process:
         env = GrayscaleObservation(env, keep_dim=False)
         env = ResizeObservation(env, (84, 84))
