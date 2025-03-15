@@ -1,15 +1,18 @@
 import gymnasium as gym
 from gymnasium.wrappers import GrayscaleObservation, ResizeObservation, RecordVideo, RecordEpisodeStatistics
 import numpy as np
+import torch
 from collections import deque
 from gymnasium import spaces
 import base64
 from io import BytesIO
 from PIL import Image
 from ocatari.core import OCAtari
+from ocatari.vision.game_objects import NoObject
 import os
 import pickle
 import cv2
+import time
 
 class FrameStack(gym.Wrapper):
     def __init__(self, env, k):
@@ -91,11 +94,11 @@ def wrap_recording(env, video_folder, episode_trigger, name_prefix):
     env = RecordEpisodeStatistics(env, buffer_length=1)
     return env
 
-def get_env(process=True, oc=False):
+def get_env(process=True, oc=False, hud=False, repeat_action_probability=0.25):
     if oc:
-        env = OCAtari("ALE/Frogger-v5", mode="vision", render_mode="rgb_array", obs_mode="ori", render_oc_overlay=True, frameskip=4, repeat_action_probability=0)
+        env = OCAtari("ALE/Frogger-v5", mode="vision", render_mode="rgb_array", obs_mode="ori", hud=hud, render_oc_overlay=True, frameskip=4, repeat_action_probability=repeat_action_probability)
     else:
-        env = gym.make("ALE/Frogger-v5", render_mode="rgb_array", frameskip=4, repeat_action_probability=0)  # Create Atari env
+        env = gym.make("ALE/Frogger-v5", render_mode="rgb_array", frameskip=4, repeat_action_probability=repeat_action_probability)
     if process:
         env = GrayscaleObservation(env, keep_dim=False)
         env = ResizeObservation(env, (84, 84))
@@ -194,7 +197,66 @@ def record_video(select_action, video_folder, episode_trigger, name_prefix):
     return env.return_queue[0], env.length_queue[0], env.time_queue[0]
 
 def frames_to_video(video_folder, video_name, frames, fps):
+    os.makedirs(video_folder, exist_ok=True)
     from moviepy.video.io.ImageSequenceClip import ImageSequenceClip
     clip = ImageSequenceClip(frames, fps=fps)
     path = os.path.join(video_folder, f"{video_name}.mp4")
     clip.write_videofile(path)
+
+def get_obj_classes():
+    classes = ["Frog", "Log", "Alligator", "Turtle", "LadyFrog", "Snake", "HappyFrog", "AlligatorHead", "Fly", "Car"]
+    return classes
+
+def extract_objs(env, return_tensor=False):
+    env.detect_objects()
+    objs = [{'name': obj.__class__.__name__, 'x': obj.x, 'y': obj.y, 'w': obj.w, 'h': obj.h} for obj in env.objects if obj != NoObject() and obj.visible]
+    if return_tensor:
+        classes = get_obj_classes()
+        x = []
+        for obj in objs:
+            # +1 to account for first padding class
+            obj_class = float(classes.index(obj['name']) + 1)
+            x.append(torch.tensor([obj_class, obj['x'], obj['y'], obj['w'], obj['h']]))
+        return torch.stack(x)
+    else:
+        return objs
+
+def objs_to_str(objs):
+    return ', '.join(f"{obj['name']} at ({obj['x']}, {obj['y']}) size ({obj['w']}, {obj['h']})" for obj in objs)
+
+def action_to_index(action: str) -> int:
+    actions_dict = { "NOOP": 0, "UP": 1, "RIGHT": 2, "LEFT": 3, "DOWN": 4 }
+    return actions_dict[action]
+
+def index_to_action(index: int) -> str:
+    actions_dict = { "NOOP": 0, "UP": 1, "RIGHT": 2, "LEFT": 3, "DOWN": 4 }
+    return list(actions_dict.keys())[index]
+
+def render_frame(env, return_tensor=False):
+    objs = extract_objs(env, return_tensor)
+    frame = np.flip(np.rot90(env.render(), k=-1), axis=1)
+    return frame, objs
+
+def record_video_oc(select_action, video_folder, video_name, max_length=2000):
+    env = get_env(process=False, oc=True)
+    state, info = env.reset()
+    frame, state_objs = render_frame(env, return_tensor=True)
+    frames = [frame]
+    total_reward = 0
+    total_length = 0
+    start_time = time.time()
+    
+    while total_length <= max_length:
+        action = select_action(env=env, state_objs=state_objs)
+        print('iteration', total_length, 'action', action)
+        next_state, reward, terminated, truncated, info = env.step(action)
+        frame, state_objs = render_frame(env, return_tensor=True)
+        frames.append(frame)
+        total_reward += reward
+        total_length += 1
+        if terminated or truncated:
+            break
+    total_time = time.time() - start_time
+    frames_to_video(video_folder=video_folder, video_name=video_name, frames=frames, fps=15)
+    env.close()
+    return total_reward, total_length, total_time
