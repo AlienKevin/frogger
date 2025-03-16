@@ -83,18 +83,93 @@ class LazyFrames(object):
         return self._force()[..., i]
 
 
-def wrap_deepmind(env):
-    """Configure environment for DeepMind-style Atari.
-    """
-    env = FrameStack(env, 4)
-    return env
+class FrameStackOC():
+    def __init__(self, env, k):
+        """Stack k last frames.
+
+        Returns lazy array, which is much more memory efficient.
+
+        See Also
+        --------
+        baselines.common.atari_wrappers.LazyFrames
+        """
+        self.env = env
+        self.k = k
+        self.frames = deque([], maxlen=k)
+        shp = env.observation_space.shape
+        self.observation_space = spaces.Box(low=0, high=255, shape=(shp[:-1] + (shp[-1] * k,)), dtype=env.observation_space.dtype)
+        self.action_space = env.action_space
+    
+    def detect_objects(self):
+        result = self.env.detect_objects()
+        self.objects = self.env.objects
+        return result
+    
+    def render(self):
+        return self.env.render()
+    
+    def close(self):
+        return self.env.close()
+
+    def reset(self, seed=None, options=None):
+        _, info = self.env.reset(seed=seed, options=options)
+        ob = extract_objs(self.env, return_tensor=True)
+        for _ in range(self.k):
+            self.frames.append(ob)
+        return self._get_ob(), info
+
+    def step(self, action):
+        _, reward, done, truncated, info = self.env.step(action)
+        ob = extract_objs(self.env, return_tensor=True)
+        self.frames.append(ob)
+        return self._get_ob(), reward, done, truncated, info
+
+    def _get_ob(self):
+        assert len(self.frames) == self.k
+        return LazyFramesOC(list(self.frames))
+
+
+class LazyFramesOC(object):
+    def __init__(self, frames):
+        """This object ensures that common frames between the observations are only stored once.
+        It exists purely to optimize memory usage which can be huge for DQN's 1M frames replay
+        buffers.
+
+        This object should only be converted to numpy array before being passed to the model.
+
+        You'd not believe how complex the previous solution was."""
+        self._frames = frames
+        self._out = None
+
+    def _force(self):
+        if self._out is None:
+            self._out = torch.cat([torch.cat((torch.full(frame.size()[:-1] + (1,), i), frame), dim=-1) for i, frame in enumerate(self._frames)], dim=0)
+            self._frames = None
+        return self._out
+    
+    def to_tensor(self):
+        return self._force()
+
+    def __len__(self):
+        return len(self._force())
+
+    def __getitem__(self, i):
+        return self._force()[i]
+
+    def count(self):
+        frames = self._force()
+        return frames.shape[frames.ndim - 1]
+
+    def frame(self, i):
+        return self._force()[..., i]
+
 
 def wrap_recording(env, video_folder, episode_trigger, name_prefix):
     env = RecordVideo(env, video_folder=video_folder, episode_trigger=episode_trigger, name_prefix=name_prefix)
     env = RecordEpisodeStatistics(env, buffer_length=1)
     return env
 
-def get_env(process=True, oc=False, hud=False, repeat_action_probability=0.25):
+def get_env(process=True, oc=False, hud=False, repeat_action_probability=0.25, framestack=4):
     if oc:
         env = OCAtari("ALE/Frogger-v5", mode="vision", render_mode="rgb_array", obs_mode="ori", hud=hud, render_oc_overlay=True, frameskip=4, repeat_action_probability=repeat_action_probability)
     else:
@@ -102,8 +177,11 @@ def get_env(process=True, oc=False, hud=False, repeat_action_probability=0.25):
     if process:
         env = GrayscaleObservation(env, keep_dim=False)
         env = ResizeObservation(env, (84, 84))
-    if not oc:
-        env = wrap_deepmind(env)
+    if framestack > 1:
+        if oc:
+            env = FrameStackOC(env, framestack)
+        else:
+            env = FrameStack(env, framestack)
     return env
 
 
@@ -240,18 +318,19 @@ def render_frame(env, return_tensor=False):
 def record_video_oc(select_action, video_folder, video_name, max_length=2000):
     env = get_env(process=False, oc=True)
     state, info = env.reset()
-    frame, state_objs = render_frame(env, return_tensor=True)
+    frame, _ = render_frame(env)
     frames = [frame]
     total_reward = 0
     total_length = 0
     start_time = time.time()
     
     while total_length <= max_length:
-        action = select_action(env=env, state_objs=state_objs)
+        action = select_action(env=env, state_objs=state)
         print('iteration', total_length, 'action', action)
         next_state, reward, terminated, truncated, info = env.step(action)
-        frame, state_objs = render_frame(env, return_tensor=True)
+        frame, _ = render_frame(env)
         frames.append(frame)
+        state = next_state
         total_reward += reward
         total_length += 1
         if terminated or truncated:
