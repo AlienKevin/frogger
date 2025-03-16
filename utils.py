@@ -84,7 +84,7 @@ class LazyFrames(object):
 
 
 class FrameStackOC():
-    def __init__(self, env, k):
+    def __init__(self, env, k, knn):
         """Stack k last frames.
 
         Returns lazy array, which is much more memory efficient.
@@ -95,6 +95,7 @@ class FrameStackOC():
         """
         self.env = env
         self.k = k
+        self.knn = knn
         self.frames = deque([], maxlen=k)
         shp = env.observation_space.shape
         self.observation_space = spaces.Box(low=0, high=255, shape=(shp[:-1] + (shp[-1] * k,)), dtype=env.observation_space.dtype)
@@ -113,14 +114,14 @@ class FrameStackOC():
 
     def reset(self, seed=None, options=None):
         _, info = self.env.reset(seed=seed, options=options)
-        ob = extract_objs(self.env, return_tensor=True)
+        ob = extract_objs(self.env, return_tensor=True, knn=self.knn)
         for _ in range(self.k):
             self.frames.append(ob)
         return self._get_ob(), info
 
     def step(self, action):
         _, reward, done, truncated, info = self.env.step(action)
-        ob = extract_objs(self.env, return_tensor=True)
+        ob = extract_objs(self.env, return_tensor=True, knn=self.knn)
         self.frames.append(ob)
         return self._get_ob(), reward, done, truncated, info
 
@@ -169,7 +170,7 @@ def wrap_recording(env, video_folder, episode_trigger, name_prefix):
     env = RecordEpisodeStatistics(env, buffer_length=1)
     return env
 
-def get_env(process=True, oc=False, hud=False, repeat_action_probability=0.25, framestack=4):
+def get_env(process=True, oc=False, hud=False, repeat_action_probability=0.25, framestack=4, knn=None):
     if oc:
         env = OCAtari("ALE/Frogger-v5", mode="vision", render_mode="rgb_array", obs_mode="ori", hud=hud, render_oc_overlay=True, frameskip=4, repeat_action_probability=repeat_action_probability)
     else:
@@ -179,7 +180,7 @@ def get_env(process=True, oc=False, hud=False, repeat_action_probability=0.25, f
         env = ResizeObservation(env, (84, 84))
     if framestack > 1:
         if oc:
-            env = FrameStackOC(env, framestack)
+            env = FrameStackOC(env, framestack, knn)
         else:
             env = FrameStack(env, framestack)
     return env
@@ -285,12 +286,20 @@ def get_obj_classes():
     classes = ["Frog", "Log", "Alligator", "Turtle", "LadyFrog", "Snake", "HappyFrog", "AlligatorHead", "Fly", "Car"]
     return classes
 
-def extract_objs(env, return_tensor=False):
+def extract_objs(env, return_tensor=False, knn=None):
     env.detect_objects()
     objs = [{'name': obj.__class__.__name__, 'x': obj.x, 'y': obj.y, 'w': obj.w, 'h': obj.h} for obj in env.objects if obj != NoObject() and obj.visible]
     if return_tensor:
         classes = get_obj_classes()
         x = []
+        if knn is not None:
+            for obj in objs:
+                if obj['name'] == 'Frog':
+                    frog = obj
+                    break
+            obj_indices = np.argsort([abs(obj['x'] - frog['x']) + abs(obj['y'] - frog['y']) for obj in objs])[:knn]
+            objs = [objs[i] for i in obj_indices]
+            # print(objs)
         for obj in objs:
             # +1 to account for first padding class
             obj_class = float(classes.index(obj['name']) + 1)
@@ -310,13 +319,13 @@ def index_to_action(index: int) -> str:
     actions_dict = { "NOOP": 0, "UP": 1, "RIGHT": 2, "LEFT": 3, "DOWN": 4 }
     return list(actions_dict.keys())[index]
 
-def render_frame(env, return_tensor=False):
-    objs = extract_objs(env, return_tensor)
+def render_frame(env, return_tensor=False, knn=None):
+    objs = extract_objs(env, return_tensor, knn)
     frame = np.flip(np.rot90(env.render(), k=-1), axis=1)
     return frame, objs
 
-def record_video_oc(select_action, video_folder, video_name, max_length=2000):
-    env = get_env(process=False, oc=True)
+def record_video_oc(select_action, video_folder, video_name, max_length=2000, knn=None):
+    env = get_env(process=False, oc=True, knn=knn)
     state, info = env.reset()
     frame, _ = render_frame(env)
     frames = [frame]
