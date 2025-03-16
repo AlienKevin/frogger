@@ -13,6 +13,7 @@ import os
 import pickle
 import cv2
 import time
+import json
 
 class FrameStack(gym.Wrapper):
     def __init__(self, env, k):
@@ -165,24 +166,63 @@ class LazyFramesOC(object):
         return self._force()[..., i]
 
 
+
+class EpisodicLifeEnv(gym.Wrapper):
+    def __init__(self, env):
+        """Make end-of-life == end-of-episode, but only reset on true game over.
+        Done by DeepMind for the DQN and co. since it helps value estimation.
+        """
+        gym.Wrapper.__init__(self, env)
+        self.lives = 0
+        self.was_real_done  = True
+
+    def step(self, action):
+        obs, reward, terminated, truncated, info = self.env.step(action)
+        self.was_real_done = terminated or truncated
+        # check current lives, make loss of life terminal,
+        # then update lives to handle bonus lives
+        lives = self.env.unwrapped.ale.lives()
+        if lives < self.lives and lives > 0:
+            # for Qbert sometimes we stay in lives == 0 condition for a few frames
+            # so it's important to keep lives > 0, so that we only reset once
+            # the environment advertises done.
+            terminated = True
+        self.lives = lives
+        return obs, reward, terminated, truncated, info
+
+    def reset(self, **kwargs):
+        """Reset only when lives are exhausted.
+        This way all states are still reachable even though lives are episodic,
+        and the learner need not know about any of this behind-the-scenes.
+        """
+        if self.was_real_done:
+            obs, info = self.env.reset(**kwargs)
+        else:
+            # no-op step to advance from terminal/lost life state
+            obs, _, _, _, info = self.env.step(0)
+        self.lives = self.env.unwrapped.ale.lives()
+        return obs, info
+
+
 def wrap_recording(env, video_folder, episode_trigger, name_prefix):
     env = RecordVideo(env, video_folder=video_folder, episode_trigger=episode_trigger, name_prefix=name_prefix)
     env = RecordEpisodeStatistics(env, buffer_length=1)
     return env
 
-def get_env(process=True, oc=False, hud=False, repeat_action_probability=0.25, framestack=4, knn=None):
+def get_env(oc=False, hud=False, repeat_action_probability=0.25, framestack=4, episodic=False):
     if oc:
-        env = OCAtari("ALE/Frogger-v5", mode="vision", render_mode="rgb_array", obs_mode="ori", hud=hud, render_oc_overlay=True, frameskip=4, repeat_action_probability=repeat_action_probability)
+        env = OCAtari("ALE/Frogger-v5", mode="vision", render_mode="rgb_array", obs_mode="obj", hud=hud,
+                      render_oc_overlay=True, frameskip=4, repeat_action_probability=repeat_action_probability, buffer_window_size=framestack)
+        if episodic:
+            env._env = EpisodicLifeEnv(env._env)
     else:
         env = gym.make("ALE/Frogger-v5", render_mode="rgb_array", frameskip=4, repeat_action_probability=repeat_action_probability)
-    if process:
         env = GrayscaleObservation(env, keep_dim=False)
         env = ResizeObservation(env, (84, 84))
-    if framestack > 1:
-        if oc:
-            env = FrameStackOC(env, framestack, knn)
-        else:
-            env = FrameStack(env, framestack)
+        if episodic:
+            env = EpisodicLifeEnv(env)
+    if framestack > 1 and not oc:
+        env = FrameStack(env, framestack)
     return env
 
 
@@ -262,18 +302,52 @@ def load_demonstrations(ids=[2], stack_frames=False, process=True):
     
     return demonstrations
 
-def record_video(select_action, video_folder, episode_trigger, name_prefix):
-    env = get_env()
-    env = wrap_recording(env, video_folder=video_folder, episode_trigger=episode_trigger, name_prefix=name_prefix)
+
+def load_llm_demonstrations(oc=False):
+    # load expert demonstrations
+    with open(f'traces/o3-mini-2025-01-31_high_past_3_rewards_show_seed_1_temp_1.0.json', 'r') as f:
+        trace = json.load(f)[1:]
+        actions = []
+        for t in trace:
+            if t['done']:
+                break
+            actions.append(t['action'])
+    env = get_env(oc=oc, repeat_action_probability=0)
+    state, _ = env.reset()
+    buffer = []
+    total_reward = 0
+    for i,(action, t) in enumerate(zip(actions, trace)):
+        next_state, reward, terminated, truncated, _ = env.step(action)
+        assert reward == t['reward']
+        done = terminated or truncated
+        buffer.append((state, action, reward, next_state, done))
+        state = next_state
+        total_reward += reward
+        if done:
+            break
+    print('total actions:', len(actions))
+    print('total reward:', total_reward)
+    print('total length:', len(buffer))
+    return buffer
+
+def record_video(env, select_action, video_folder, episode_trigger, name_prefix):
+    if isinstance(env, gym.Env):
+        env = wrap_recording(env, video_folder=video_folder, episode_trigger=episode_trigger, name_prefix=name_prefix)
+    else:
+        env._env = wrap_recording(env._env, video_folder=video_folder, episode_trigger=episode_trigger, name_prefix=name_prefix)
     state, info = env.reset()
     while True:
         action = select_action(env=env, state=state)
-        next_state, reward, done, truncated, info = env.step(action)
+        next_state, reward, terminated, truncated, info = env.step(action)
         state = next_state
-        if done:
+        if terminated or truncated:
             break
     env.close()
-    return env.return_queue[0], env.length_queue[0], env.time_queue[0]
+    if isinstance(env, gym.Env):
+        e = env
+    else:
+        e = env._env
+    return e.return_queue[0], e.length_queue[0], e.time_queue[0]
 
 def frames_to_video(video_folder, video_name, frames, fps):
     os.makedirs(video_folder, exist_ok=True)
@@ -348,3 +422,8 @@ def record_video_oc(select_action, video_folder, video_name, max_length=2000, kn
     frames_to_video(video_folder=video_folder, video_name=video_name, frames=frames, fps=15)
     env.close()
     return total_reward, total_length, total_time
+
+def layer_init(layer, std=np.sqrt(2), bias_const=0.0):
+    torch.nn.init.orthogonal_(layer.weight, std)
+    torch.nn.init.constant_(layer.bias, bias_const)
+    return layer
