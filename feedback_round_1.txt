@@ -1,0 +1,18 @@
+"observations": [
+    "The frog starts in a safe zone and initially waits (NOOP) or moves upward repeatedly until obstacles come into play.",
+    "Upward moves are the primary driver of progress and, when well timed, yield positive rewards.",
+    "The agent often uses RIGHT moves when the frog’s left portion would potentially collide with a car or when its horizontal alignment with a log or turtle is inadequate.",
+    "Similarly, LEFT moves are chosen when the frog’s position is too far right or if the target (LadyFrog) is on the left side, helping to realign with safe platforms.",
+    "The agent’s reasoning identifies the layout by dividing the screen into lanes: the lower car lanes, the middle road zone, and the upper river zones with moving logs and turtles.",
+    "There is clear evidence that when the frog is correctly positioned in safe gaps (for example, the identified vertical gaps between cars) an UP move is rewarded, while a poor alignment results in a zero reward.",
+    "Towards the top of the episode, the frog must also align lateral position with the stationary target (LadyFrog), and the agent uses LEFT adjustments to gradually close the horizontal gap."
+],
+"advices": [
+    "Plan Ahead: Before moving upward, always check whether your current horizontal position ensures complete overlap with a safe gap. If part of your hitbox would overlap with a car or miss a log/turtle, delay the upward move by adjusting horizontally first.",
+    "Use Lateral Moves Proactively: If you identify that future obstacles (cars or water hazards) can be avoided by slight shifts in the x-direction, use RIGHT or LEFT moves before entering those lanes. This preemptive repositioning is key to maintaining a safe trajectory.",
+    "Timing is Critical: Observe the periodic movement and spacing of vehicles and platforms. Try to delay an upward move if a car is about to enter your gap, and consider using NOOP if the traffic is temporarily favorable.",
+    "Optimize Alignment for Water Crossing: Once you finish the road portion, the key challenge is the water zone. Plan your horizontal moves so that when you move UP you can land fully on a log or turtle. Even a small misalignment may cost a life, so careful lateral adjustments are crucial.",
+    "Minimize Unnecessary Moves: Every lateral move that doesn’t contribute to safe alignment delays vertical progress. Use lateral moves only when necessary and focus on maintaining a steady upward progress when the safe gap in the next lane is clear.",
+    "Monitor the Environment: Keep an eye on the positions of both the cars and the water platforms. As you get closer to the target (LadyFrog), adjust your position gradually rather than making large leaps, ensuring a smooth transition into the goal area.",
+    "Practice Patience: In many instances, waiting (using NOOP) for the right moment before committing to an upward move can be beneficial. Let the obstacles move into a more favorable configuration instead of forcing your progress."
+]

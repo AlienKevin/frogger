@@ -209,9 +209,9 @@ def wrap_recording(env, video_folder, episode_trigger, name_prefix):
     env = RecordEpisodeStatistics(env, buffer_length=1)
     return env
 
-def get_env(oc=False, hud=False, repeat_action_probability=0.25, framestack=4, episodic=False):
+def get_env(oc=False, oc_obs_mode='obj', hud=False, repeat_action_probability=0.25, framestack=4, episodic=False):
     if oc:
-        env = OCAtari("ALE/Frogger-v5", mode="vision", render_mode="rgb_array", obs_mode="obj", hud=hud,
+        env = OCAtari("ALE/Frogger-v5", mode="vision", render_mode="rgb_array", obs_mode=oc_obs_mode, hud=hud,
                       render_oc_overlay=True, frameskip=4, repeat_action_probability=repeat_action_probability, buffer_window_size=framestack)
         if episodic:
             env._env = EpisodicLifeEnv(env._env)
@@ -303,9 +303,9 @@ def load_demonstrations(ids=[2], stack_frames=False, process=True):
     return demonstrations
 
 
-def load_llm_demonstrations(oc=False):
+def load_llm_demonstrations(oc=False, trace_path='traces/o3-mini-2025-01-31_high_past_3_rewards_show_seed_1_temp_1.0.json'):
     # load expert demonstrations
-    with open(f'traces/o3-mini-2025-01-31_high_past_3_rewards_show_seed_1_temp_1.0.json', 'r') as f:
+    with open(trace_path, 'r') as f:
         trace = json.load(f)[1:]
         actions = []
         for t in trace:

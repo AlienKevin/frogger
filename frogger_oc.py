@@ -103,14 +103,16 @@ def render_frame(env):
     return frame, objs
 
 
-def main(model, temperature, print_log, process_images, max_steps, initial_pause_steps):
+def main(model, temperature, print_log, max_steps, initial_pause_steps):
     load_dotenv()
     traces_folder = 'traces'
     os.makedirs(traces_folder, exist_ok=True)
 
-    def run_experiment(model, reasoning_effort, past_steps, show_rewards, seed, temperature, max_steps, initial_pause_steps):
-        env = get_env(process=process_images, oc=True)
+    def run_experiment(model, reasoning_effort, past_steps, show_rewards, seed, temperature, max_steps, initial_pause_steps, feedback):
+        env = get_env(oc=True, oc_obs_mode='ori', framestack=1, repeat_action_probability=0)
         experiment_name = f'{model}_{reasoning_effort}_past_{past_steps}_rewards_{"show" if show_rewards else "hide"}_seed_{seed}_temp_{temperature}'
+        if feedback:
+            experiment_name += "_round_2"
         output_file_name = f'{traces_folder}/{experiment_name}.json'
         trace = []
 
@@ -141,7 +143,7 @@ def main(model, temperature, print_log, process_images, max_steps, initial_pause
             llm_step = sum(0 if t['enforced_noop'] else 1 for t in trace[:step])
 
             # You can play at most {max_steps} steps in the game and you must maximize the cumulative reward of all steps.
-            prompt = f"""You are an expert gamer and your goal is to choose the best action to beat the game.
+            prompt = f"""You are an expert gamer and your goal is to choose the best action to beat the game.{feedback}
 The game objects are given by their top-left corner's (x, y) positions followed by their width and height in (w, h).
 Think about all possible actions and why each action is or is not the best action to take. You are at step {llm_step} and the potential actions you can take are NOOP, UP, RIGHT, LEFT, DOWN.
 Output in this JSON format: {{game_state: describe the current game state in detail, reasoning: reasoning for choosing an action, action: the chosen action}}"""
@@ -164,8 +166,9 @@ Output in this JSON format: {{game_state: describe the current game state in det
                 break
 
             if terminated or truncated:
-                frame, objs = reset_env()
-                continue
+                # frame, objs = reset_env()
+                # continue
+                break
 
             with open(output_file_name, 'w+') as f:
                 f.write(json.dumps(trace))
@@ -180,8 +183,9 @@ Output in this JSON format: {{game_state: describe the current game state in det
                 break
 
             if terminated or truncated:
-                frame, objs = reset_env()
-                continue
+                # frame, objs = reset_env()
+                # continue
+                break
         
         with open(output_file_name, 'w+') as f:
             f.write(json.dumps(trace))
@@ -189,9 +193,9 @@ Output in this JSON format: {{game_state: describe the current game state in det
         env.close()
 
     def safe_run_experiment(args):
-        model, reasoning_effort, past_steps, show_rewards, seed, temperature, max_steps, initial_pause_steps = args
+        model, reasoning_effort, past_steps, show_rewards, seed, temperature, max_steps, initial_pause_steps, feedback = args
         try:
-            run_experiment(model, reasoning_effort, past_steps, show_rewards, seed, temperature, max_steps, initial_pause_steps)
+            run_experiment(model, reasoning_effort, past_steps, show_rewards, seed, temperature, max_steps, initial_pause_steps, feedback)
         except Exception as e:
             print(f'Exception in (model={model}, reasoning_effort={reasoning_effort}, past_steps={past_steps}, show_rewards={show_rewards}')
             print(e)
@@ -199,14 +203,16 @@ Output in this JSON format: {{game_state: describe the current game state in det
             return None
 
     configs = []
-    for reasoning_effort in ['low', 'medium', 'high']:
-        for past_steps in [0, 3, 'all']:
-            for show_rewards in [False, True]:
+    for reasoning_effort in ['high']:
+        for past_steps in [0]:
+            for show_rewards in [True]:
                 for seed in [1]:
-                    configs.append((model, reasoning_effort, past_steps, show_rewards, seed, temperature, max_steps, initial_pause_steps))
+                    with open('feedback_round_1.txt') as f:
+                        feedback = f'\nBelow are a game analyzer\'s observations and advise for your previous episode of game play: {f.read()}'
+                    configs.append((model, reasoning_effort, past_steps, show_rewards, seed, temperature, max_steps, initial_pause_steps, feedback))
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
         results = list(executor.map(safe_run_experiment, configs))
 
 if __name__ == "__main__":
-    main(model='o3-mini-2025-01-31', temperature=1.0, print_log=True, process_images=False, max_steps=1000, initial_pause_steps=108)
+    main(model='o3-mini-2025-01-31', temperature=1.0, print_log=True, max_steps=1000, initial_pause_steps=108)
