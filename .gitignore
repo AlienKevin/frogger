@@ -3,6 +3,6 @@ states/
 actions.json
 traces/
 wandb/
-dqfd/
 .lightning_studio/
 .idea/
+__pycache__/

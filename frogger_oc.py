@@ -108,11 +108,13 @@ def main(model, temperature, print_log, max_steps, initial_pause_steps):
     traces_folder = 'traces'
     os.makedirs(traces_folder, exist_ok=True)
 
-    def run_experiment(model, reasoning_effort, past_steps, show_rewards, seed, temperature, max_steps, initial_pause_steps, feedback):
+    def run_experiment(model, reasoning_effort, past_steps, show_rewards, seed, temperature, max_steps, initial_pause_steps, feedback, use_explore_prompt):
         env = get_env(oc=True, oc_obs_mode='ori', framestack=1, repeat_action_probability=0)
         experiment_name = f'{model}_{reasoning_effort}_past_{past_steps}_rewards_{"show" if show_rewards else "hide"}_seed_{seed}_temp_{temperature}'
         if feedback:
             experiment_name += "_round_2"
+        if use_explore_prompt:
+            experiment_name += "_explore"
         output_file_name = f'{traces_folder}/{experiment_name}.json'
         trace = []
 
@@ -143,7 +145,13 @@ def main(model, temperature, print_log, max_steps, initial_pause_steps):
             llm_step = sum(0 if t['enforced_noop'] else 1 for t in trace[:step])
 
             # You can play at most {max_steps} steps in the game and you must maximize the cumulative reward of all steps.
-            prompt = f"""You are an expert gamer and your goal is to choose the best action to beat the game.{feedback}
+            if use_explore_prompt:
+                prompt = f"""You are a curious gamer and your goal is to explore the game environment.{feedback}
+The game objects are given by their top-left corner's (x, y) positions followed by their width and height in (w, h).
+You are at step {llm_step} and the potential actions you can take are NOOP, UP, RIGHT, LEFT, DOWN.
+Output in this JSON format: {{game_state: describe the current game state in detail, reasoning: reasoning for choosing an action, action: the chosen action}}"""
+            else:
+                prompt = f"""You are an expert gamer and your goal is to choose the best action to beat the game.{feedback}
 The game objects are given by their top-left corner's (x, y) positions followed by their width and height in (w, h).
 Think about all possible actions and why each action is or is not the best action to take. You are at step {llm_step} and the potential actions you can take are NOOP, UP, RIGHT, LEFT, DOWN.
 Output in this JSON format: {{game_state: describe the current game state in detail, reasoning: reasoning for choosing an action, action: the chosen action}}"""
@@ -193,9 +201,9 @@ Output in this JSON format: {{game_state: describe the current game state in det
         env.close()
 
     def safe_run_experiment(args):
-        model, reasoning_effort, past_steps, show_rewards, seed, temperature, max_steps, initial_pause_steps, feedback = args
+        model, reasoning_effort, past_steps, show_rewards, seed, temperature, max_steps, initial_pause_steps, feedback, use_explore_prompt = args
         try:
-            run_experiment(model, reasoning_effort, past_steps, show_rewards, seed, temperature, max_steps, initial_pause_steps, feedback)
+            run_experiment(model, reasoning_effort, past_steps, show_rewards, seed, temperature, max_steps, initial_pause_steps, feedback, use_explore_prompt)
         except Exception as e:
             print(f'Exception in (model={model}, reasoning_effort={reasoning_effort}, past_steps={past_steps}, show_rewards={show_rewards}')
             print(e)
@@ -204,12 +212,16 @@ Output in this JSON format: {{game_state: describe the current game state in det
 
     configs = []
     for reasoning_effort in ['high']:
-        for past_steps in [0]:
+        for past_steps in ['all']:
             for show_rewards in [True]:
                 for seed in [1]:
-                    with open('feedback_round_1.txt') as f:
-                        feedback = f'\nBelow are a game analyzer\'s observations and advise for your previous episode of game play: {f.read()}'
-                    configs.append((model, reasoning_effort, past_steps, show_rewards, seed, temperature, max_steps, initial_pause_steps, feedback))
+                    for show_feedback in [False]:
+                        for use_explore_prompt in [True]:
+                            feedback = ""
+                            if show_feedback:
+                                with open('feedback_round_1.txt') as f:
+                                    feedback = f'\nBelow are a game analyzer\'s observations and advise for your previous episode of game play: {f.read()}'
+                            configs.append((model, reasoning_effort, past_steps, show_rewards, seed, temperature, max_steps, initial_pause_steps, feedback, use_explore_prompt))
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:
         results = list(executor.map(safe_run_experiment, configs))
