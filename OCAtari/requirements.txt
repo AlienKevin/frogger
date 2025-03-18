@@ -1,0 +1,27 @@
+ale_py
+# alive_progress==3.1.5
+beautifulsoup4
+gymnasium
+ipdb
+keyboard
+matplotlib
+numpy<2.0.0
+opencv_python==4.8.1.78
+pandas
+Pillow
+# Pillow==10.2.0
+pyfiglet
+pygame
+pynput
+Requests
+rtpt
+scikit_learn
+scipy
+seaborn
+# setuptools==56.0.0
+scikit-image
+stable_baselines3
+termcolor
+# torch==2.1.0
+tqdm
+# gymnasium[atari, accept-rom-license]
