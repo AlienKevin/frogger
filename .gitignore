@@ -1,4 +1,5 @@
 .env
+.vscode
 states/
 actions.json
 traces/
