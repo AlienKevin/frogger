@@ -1,4 +1,4 @@
-from utils import get_env
+from utils import get_env, index_to_action
 import matplotlib.pyplot as plt
 import numpy as np
 import json
@@ -58,11 +58,12 @@ for plot_index, reasoning_effort in enumerate(['low', 'medium', 'high', 'default
                                         deadpoints.append((llm_step+1, rewards, trace[i-2], trace[i-1], t))
                                         lives = new_lives
                                 
-                                median = np.median(completion_tokens)
-                                rewards_vs_completion_tokens.append((rewards, reasoning_effort, median, median - np.percentile(completion_tokens, 25), np.percentile(completion_tokens, 75) - median))
-                                # print(rewards_vs_completion_tokens)
+                                if not exploration and not feedback:
+                                    median = np.median(completion_tokens)
+                                    rewards_vs_completion_tokens.append((rewards, reasoning_effort, median, median - np.percentile(completion_tokens, 25), np.percentile(completion_tokens, 75) - median))
+                                    # print(rewards_vs_completion_tokens)
                                 
-                                if reasoning_effort != 'default':
+                                if reasoning_effort != 'default' and not exploration and not feedback:
                                     axes[plot_index].plot(plot_x, [d[1] for d in deadpoints], label=f'Past steps: {past_steps}, Rewards: {"show" if show_rewards else "hide"}')
                                     axes[plot_index].legend(loc='upper left')
 
@@ -75,19 +76,19 @@ for plot_index, reasoning_effort in enumerate(['low', 'medium', 'high', 'default
                                     else:
                                         t = t3
                                         tp = t2
-                                    # print(f"* Step: {llm_step}")
-                                    # print(f"* Previous and current states:\n    <p float='left'><img src='data:image/png;base64,{tp['frame']}' width='300'><img src='data:image/png;base64,{t['frame']}' width='300'></p>")
-                                    # print(f"* Action: {index_to_action(t['action'])}")
-                                    # print(f"* Reward for this life: {rewards - deadpoints[i-1][1] if i > 0 else rewards}")
-                                    # # print(f"* LLM Prompt: {t['llm_input']}")
-                                    # print(f"* LLM Reasoning: {json.loads(t['llm_output']['choices'][0]['message']['content'])['reasoning']}")
-                                    # print(f"* LLM Prompt Tokens: {t['llm_output']['usage']['prompt_tokens']}")
-                                    # if reasoning_effort != 'default':
-                                    #     print(f"* LLM Reasoning Tokens: {t['llm_output']['usage']['completion_tokens_details']['reasoning_tokens']}")
-                                    #     print(f"* LLM Completion Tokens: {t['llm_output']['usage']['completion_tokens'] - t['llm_output']['usage']['completion_tokens_details']['reasoning_tokens']}")
-                                    # else:
-                                    #     print(f"* LLM Completion Tokens: {t['llm_output']['usage']['completion_tokens']}")
-                                    # print('<div style="page-break-after: always;"></div>\n')
+                                    print(f"* Step: {llm_step}")
+                                    print(f"* Previous and current states:\n    <p float='left'><img src='data:image/png;base64,{tp['frame']}' width='300'><img src='data:image/png;base64,{t['frame']}' width='300'></p>")
+                                    print(f"* Action: {index_to_action(t['action'])}")
+                                    print(f"* Reward for this life: {rewards - deadpoints[i-1][1] if i > 0 else rewards}")
+                                    # print(f"* LLM Prompt: {t['llm_input']}")
+                                    print(f"* LLM Reasoning: {json.loads(t['llm_output']['choices'][0]['message']['content'])['reasoning']}")
+                                    print(f"* LLM Prompt Tokens: {t['llm_output']['usage']['prompt_tokens']}")
+                                    if reasoning_effort != 'default':
+                                        print(f"* LLM Reasoning Tokens: {t['llm_output']['usage']['completion_tokens_details']['reasoning_tokens']}")
+                                        print(f"* LLM Completion Tokens: {t['llm_output']['usage']['completion_tokens'] - t['llm_output']['usage']['completion_tokens_details']['reasoning_tokens']}")
+                                    else:
+                                        print(f"* LLM Completion Tokens: {t['llm_output']['usage']['completion_tokens']}")
+                                    print('<div style="page-break-after: always;"></div>\n')
 
 fig.savefig('life_rewards.png')        
 
